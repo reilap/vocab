@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Vocab</title>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+          crossorigin="anonymous">
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+    <style>
+        .wrap {
+            background-color: RGBA(250, 209, 208, 0.4);
+            min-height: 100vh;
+            padding-bottom: 50px;
+        }
+
+        .banner {
+            width: 100%;
+            height: 200px;
+
+            background-color: white;
+            background-image: url('{{ url_for("static", filename="logo_red.png") }}');
+
+            background-position: center;
+            background-size: contain;
+            background-repeat: no-repeat;
+
+            cursor: pointer;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: white;
+
+            border: solid 1px gray;
+            border-radius: 10px;
+        }
+
+        span.example {
+            color: gray;
+            font-size: 14px;
+        }
+
+        .btn-reila {
+            color: white;
+            background-color: #e8344e;
+            border-color: #e8344e;
+        }
+
+        .btn-outline-reila {
+            color: #e8344e;
+            background-color: transparent;
+            background-image: none;
+            border-color: #e8344e;
+        }
+
+    </style>
+    <script>
+        let word = '{{ word }}'
+        $(document).ready(function () {
+            // <ajax request input in html> get_definitions()
+        })
+
+        function get_definitions() {
+            $.ajax({
+                type: "GET",
+                url: `https://owlbot.info/api/v4/dictionary/${word}`,
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader("Authorization", "Token edfcbaee6cfb3fd175799ee610d6c41a840b1931");
+                },
+                data: {},
+                error: function (xhr, status, error) {
+                    alert("에러");
+                },
+                success: function (response) {
+                    console.log(response)
+                    $("#word").text(response["word"])
+                    if (response["pronunciation"] == null) {
+                        $("#pron").text("")
+                    } else {
+                        $("#pron").text(`/${response["pronunciation"]}/`)
+                    }
+                    $("#defin").empty()
+                    let all_defin = response["definitions"]
+                    for (i = 0; i < all_defin.length; i++) {
+                        let one_defin = all_defin[i]
+                        let temp_html = ""
+                        if (one_defin["example"] != null) {
+                            temp_html = `<div style="padding:10px">
+                                                    <i>${one_defin["type"]}</i>
+                                                    <br>${one_defin["definition"]}<br>
+                                                    <span class="example">${one_defin["example"]}</span>
+                                                </div>`
+                        } else {
+                            temp_html = `<div style="padding:10px">
+                                                    <i>${one_defin["type"]}</i>
+                                                    <br>${one_defin["definition"]}<br>
+                                                </div>`
+                        }
+                        $("#defin").append(temp_html)
+                    }
+                }
+            })
+        }
+
+    </script>
+</head>
+
+<body>
+<div class="wrap">
+    <div class="banner" onclick="window.location.href = '/'">
+    </div>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-end">
+            <div>
+                <h1 id="word" style="display: inline;">{{ pyResult.word }}</h1>
+                {% if pyResult.pronunciation %}
+                    <h5 id="pron" style="display: inline;">/{{ pyResult.pronunciation }}/</h5>
+                {% endif %}
+            </div>
+            <button id="btn-save" class="btn btn-outline-reila btn-lg"><i class="fa fa-floppy-o" aria-hidden="true"></i>
+            </button>
+            <button id="btn-delete" class="btn btn-reila btn-lg"><i class="fa fa-trash-o" aria-hidden="true"></i>
+            </button>
+        </div>
+        <hr>
+        <div id="defin">
+            {% for one_defin in pyResult.definitions %}
+                <div style="padding:10px">
+                    <i>{{ one_defin.type }}</i>
+                    <br>{{ one_defin.definition }}<br>
+                    {% if one_defin.example %}
+                        <span class="example">{{ one_defin.example|safe }}</span>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+</body>
+</html>
