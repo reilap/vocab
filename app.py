@@ -5,7 +5,7 @@ import requests
 
 app = Flask(__name__)
 
-client = MongoClient('3.36.127.19', 27017, username="test", password="test")
+client = MongoClient('IP', 11111, username="", password="")
 db = client.reila
 
 
@@ -21,7 +21,7 @@ def main():
 def detail(keyword):
     # find definition from api and send it to html
     condition_receive = request.args.get("condition_give")
-    r = requests.get(f"https://owlbot.info/api/v4/dictionary/{keyword}", headers = {"Authorization": "Token edfcbaee6cfb3fd175799ee610d6c41a840b1931"})
+    r = requests.get(f"https://owlbot.info/api/v4/dictionary/{keyword}", headers = {"Authorization": "Token token"})
     if r.status_code != 200:
         return redirect(url_for("main", alert="Word not found in dictionary"))
     result = r.json()
