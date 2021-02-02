@@ -10,6 +10,7 @@
           integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
           crossorigin="anonymous">
     <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href='{{ url_for("static", filename="mystyle.css") }}' rel="stylesheet">
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
@@ -20,63 +21,122 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
             integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
             crossorigin="anonymous"></script>
-    <style>
-        .wrap {
-            background-color: RGBA(250, 209, 208, 0.4);
-            min-height: 100vh;
-            padding-bottom: 50px;
-        }
 
-        .banner {
-            width: 100%;
-            height: 200px;
 
-            background-color: white;
-            background-image: url('{{ url_for("static", filename="logo_red.png") }}');
-
-            background-position: center;
-            background-size: contain;
-            background-repeat: no-repeat;
-
-            cursor: pointer;
-        }
-
-        .container {
-            width: 80%;
-            max-width: 800px;
-            margin: 30px auto;
-            padding: 20px;
-            background-color: white;
-
-            border: solid 1px gray;
-            border-radius: 10px;
-        }
-
-        span.example {
-            color: gray;
-            font-size: 14px;
-        }
-
-        .btn-reila {
-            color: white;
-            background-color: #e8344e;
-            border-color: #e8344e;
-        }
-
-        .btn-outline-reila {
-            color: #e8344e;
-            background-color: transparent;
-            background-image: none;
-            border-color: #e8344e;
-        }
-
-    </style>
     <script>
-        let word = '{{ word }}'
+        let condition = "{{ condition }}"
+        let keyword = "{{ keyword }}"
+        let first_definition = "{{ pyResult.definitions[0].definition }}"
+        console.log(condition)
         $(document).ready(function () {
-            // <ajax request input in html> get_definitions()
+            if (condition == "new") {
+                $("#btn-delete").hide()
+                $("#examples").hide()
+            } else {
+                $("#btn-save").hide()
+                display_ex()
+            }
         })
 
+        function save_word() {
+            $.ajax({
+                type: "POST",
+                url: "/api/save_word",
+                data: {
+                    word_give: keyword,
+                    defin_give: first_definition
+                },
+                success: function (response) {
+                    alert(response["msg"])
+                    $("#btn-save").hide()
+                    $("#btn-delete").show()
+                    condition = "old"
+                    $("#examples").show()
+                    display_ex()
+                }
+            });
+        }
+
+
+        function delete_word() {
+            $.ajax({
+                type: "POST",
+                url: "/api/delete_word",
+                data: {
+                    word_give:keyword
+                },
+                success: function (response) {
+                    alert(response["msg"])
+                    window.location.href="/"
+                }
+            });
+        }
+
+        function save_ex() {
+            let new_ex = $('#new-example').val();
+            if (!new_ex.toLowerCase().includes(keyword)) {
+                alert(`please include '${keyword}' in sentence`)
+                return;
+            }
+            console.log(new_ex)
+            $.ajax({
+                type: "POST",
+                url: `/api/save_ex`,
+                data: {
+                    word_give: keyword,
+                    ex_give: new_ex
+                },
+                success: function (response) {
+                    alert(response['msg']);
+                    $("#new-example").val("")
+                    display_ex()
+                }
+            })
+        }
+
+
+        function display_ex() {
+            $.ajax({
+                type: "GET",
+                url: `/api/display_ex`,
+                data: {
+                    word_give: keyword
+                },
+                success: function (response) {
+                    let display = response["display"]
+                    for (let i = 0; i < display.length; i++) {
+                        let append_example = display[i]["example"]
+                        console.log("ex append")
+                        if (append_example == undefined){
+                            return;
+                        }
+                        let temp_html = `<li id="ex-1"> ${append_example} &nbsp;
+                                         <a href="javascript:delete_ex(1)" onclick="delete_ex()">delete</a></li>`
+                        $("#example-list").append(temp_html)
+                    }
+                }
+            });
+        }
+
+        function delete_ex() {
+            $.ajax({
+                type: "POST",
+                url: `/api/delete_ex`,
+                data: {
+                    word_give: keyword
+                },
+                success: function (response) {
+                    console.log("지움 ")
+
+                    display_ex()
+                    window.location.reload()
+                }
+            })
+        }
+
+
+        // get_definitions() //
+        /*
         function get_definitions() {
             $.ajax({
                 type: "GET",
@@ -118,6 +178,8 @@
                 }
             })
         }
+        */
+
 
     </script>
 </head>
@@ -131,12 +193,12 @@
             <div>
                 <h1 id="word" style="display: inline;">{{ pyResult.word }}</h1>
                 {% if pyResult.pronunciation %}
-                    <h5 id="pron" style="display: inline;">/{{ pyResult.pronunciation }}/</h5>
+                    <h5 id="pron" style="display: inline;">{{pyResult.pronunciation}}</h5>
                 {% endif %}
             </div>
-            <button id="btn-save" class="btn btn-outline-reila btn-lg"><i class="fa fa-floppy-o" aria-hidden="true"></i>
+            <button id="btn-save" class="btn btn-outline-reila btn-lg" onclick="save_word()"><i class="fa fa-floppy-o" aria-hidden="true"></i>
             </button>
-            <button id="btn-delete" class="btn btn-reila btn-lg"><i class="fa fa-trash-o" aria-hidden="true"></i>
+            <button id="btn-delete" class="btn btn-reila btn-lg" onclick="delete_word()"><i class="fa fa-trash-o" aria-hidden="true"></i>
             </button>
         </div>
         <hr>
@@ -152,6 +214,22 @@
             {% endfor %}
         </div>
     </div>
+
+
+<div id="examples" class="container">
+    <h3 style="text-align: left;margin-bottom:1rem">Write your own sentences!</h3>
+    <ul id="example-list">
+        <!-- <li id="ex-1">I don't like using the MS Word program.&nbsp;
+            <a href="javascript:delete_ex(1)">delete</a></li> -->
+    </ul>
+    <div class="d-flex justify-content-between" style="margin-left:20px;">
+        <input id="new-example" class="form-control form-control-sm" style="margin-right: 0.5rem">
+        <button class="btn btn-outline-secondary btn-sm" onclick="save_ex()">add</button>
+    </div>
 </div>
+
+
+</div>
+
 </body>
 </html>
