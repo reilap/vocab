@@ -1,47 +1,142 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
-from pymongo import MongoClient
-import requests
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>My Vocabulary</title>
+    <meta property="og:title" content="Vocabs"/>
+    <meta property="og:description" content="Find, Save and Manage Your Vocabs!"/>
+    <meta property="og:image" content="{{ url_for('static', filename='logo_red.png') }}"/>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+          crossorigin="anonymous">
+    <link href='{{ url_for("static", filename="mystyle.css") }}' rel="stylesheet">
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+    <style>
+        .search-box {
+            width: 70%;
+            margin: 50px auto;
+            max-width: 700px;
+        }
+
+        .table {
+            width: 80%;
+            max-width: 800px;
+            margin: auto;
+            table-layout: fixed;
+        }
+
+        .table th {
+            border-top-style: none;
+        }
+
+        td {
+            background-color: white;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        td > a, a:visited, a:hover, a:active {
+            color: black;
+        }
+
+        tr.highlight > td {
+            background-color: #a1a1a1;
+            color: white    ;
+        }
+
+        tr.highlight a {
+            color: white;
+        }
+
+        thead:first-child tr:first-child th:first-child {
+            border-radius: 10px 0 0 0;
+        }
+
+        thead:first-child tr:first-child th:last-child {
+            border-radius: 0 10px 0 0;
+        }
+
+        tbody:last-child tr:last-child td:first-child {
+            border-radius: 0 0 0 10px;
+        }
+
+        tbody:last-child tr:last-child td:last-child {
+            border-radius: 0 0 10px 0;
+        }
+    </style>
+    <script>
+        {% if pyAlert %}
+            alert("{{ alert }}")
+        {% endif %}
+
+        let wordLists = {{ pyWords|tojson}}
+            console.log(wordLists)
+        let word_list = []
+        for (let i = 0; i < wordLists.length; i++) {
+            word_list.push(wordLists[i]["word"])
+        }
+        console.log(word_list)
+
+        function find_word() {
+            let insert_word = $("#search-word").val().toLowerCase()
+            console.log(insert_word)
+            if (word_list.includes(insert_word)) {
+                console.log("word was saved")
+                $(`#word-${insert_word}`).addClass("highlight")
+                $(`#word-${insert_word}`).siblings().removeClass("highlight")
+                $(`#word-${insert_word}`).get(0).scrollIntoView()
+            } else {
+                window.location.href=`/detail/${insert_word}?condition_give=new`
+            }
+        }
+    </script>
+</head>
+<body>
+<div class="wrap">
+    <div class="banner" onclick="window.location.href = '/'">
+    </div>
+    <div class="search-box d-flex justify-content-center">
+        <input id="search-word" class="form-control" style="margin-right: 0.5rem">
+        <button class="btn btn-light" onclick="find_word()"><i class="fa fa-search"></i></button>
+    </div>
+
+    <table class="table">
+        <thead class="thead-light">
+        <tr>
+            <th scope="col" style="width:30%">WORD</th>
+            <th scope="col">MEANING</th>
+
+        </tr>
+        </thead>
+        <tbody id="tbody-box">
+        {% for saved_word in pyWords %}
+        <tr id="word-{{ saved_word.word }}">
+            <td><a href="/detail/{{ saved_word.word }}?condition_give=old">{{ saved_word.word }}</a></td>
+            <td>{{ saved_word.defin|safe}}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+</div>
 
 
-app = Flask(__name__)
-
-client = MongoClient('3.36.127.19', 27017, username="test", password="test")
-db = client.reila
-
-
-@app.route('/')
-def main():
-    # DB에서 저장된 단어 찾아서 HTML에 나타내기
-    alert_receive = request.args.get("alert")
-    return render_template("index.html", alert=alert_receive)
-
-
-@app.route('/detail/<keyword>')
-def detail(keyword):
-    # find definition from api and send it to html
-    r = requests.get(f"https://owlbot.info/api/v4/dictionary/{keyword}", headers = {"Authorization": "Token xyz"})
-    if r.status_code != 200:
-        return redirect(url_for("main", alert="Word not found in dictionary. Try another word"))
-    result = r.json ()
-    print(result)
-    for one_defin in result["definitions"]:
-        one_defin["definition"] = one_defin["definition"].encode("ascii", "ignore").decode("utf-8")
-        if one_defin["example"] is not None:
-            one_defin["example"] = one_defin["example"].encode("ascii", "ignore").decode("utf-8")
-    return render_template("detail.html", word=keyword, pyResult=result)
-
-
-@app.route('/api/save_word', methods=['POST'])
-def save_word():
-    # 단어 저장하기
-    return jsonify({'result': 'success', 'msg': '단어 저장'})
-
-
-@app.route('/api/delete_word', methods=['POST'])
-def delete_word():
-    # 단어 삭제하기
-    return jsonify({'result': 'success', 'msg': '단어 삭제'})
-
-
-if __name__ == '__main__':
-    app.run('0.0.0.0', port=5000, debug=True)
+</body>
+</html>
